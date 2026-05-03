@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎾 Padel Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Home Screen -->
+        <div id="homeScreen" class="screen active">
+            <h1>🎾 Padel Game</h1>
+            <p>Challenge professional padel players!</p>
+            <button onclick="goToMode()">Play Game</button>
+        </div>
+
+        <!-- Mode Selection Screen -->
+        <div id="modeScreen" class="screen">
+            <h2>Select Game Mode</h2>
+            <button onclick="selectMode('single')">👤 Single Player (vs AI)</button>
+            <button onclick="selectMode('multi')">👥 Multiplayer (2 Players)</button>
+            <button class="back-btn" onclick="goHome()">Back</button>
+        </div>
+
+        <!-- Player Selection Screen -->
+        <div id="playerScreen" class="screen">
+            <h2>Choose Your Professional Player</h2>
+            <div id="playerGrid" class="player-grid"></div>
+            <button class="back-btn" onclick="goToMode()">Back</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="gameScreen" class="screen">
+            <div class="game-header">
+                <div class="player-info">
+                    <p id="player1Name">Player 1</p>
+                    <div class="score-display" id="score1">0</div>
+                </div>
+                <div>
+                    <h2>Score</h2>
+                </div>
+                <div class="player-info">
+                    <p id="player2Name">Player 2</p>
+                    <div class="score-display" id="score2">0</div>
+                </div>
+            </div>
+            <canvas id="gameCanvas" width="800" height="400"></canvas>
+            <div class="controls">
+                <p id="controlsInfo">Player 1: Mouse | Player 2: Arrow Keys</p>
+                <button onclick="resetGame()">Reset Game</button>
+                <button class="back-btn" onclick="goHome()">Back to Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="players.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
