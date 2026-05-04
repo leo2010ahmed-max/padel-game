@@ -1,60 +1,939 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎾 Padel Game</title>
-    <link rel="stylesheet" href="styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AURUM Padel — AI Coach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  background: #0A0A08;
+  font-family: 'DM Sans', 'Helvetica Neue', sans-serif;
+  color: #F0EDE6;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+#root { height: 100vh; display: flex; flex-direction: column; }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(212,175,55,0.3); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes blink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+@keyframes pulse-glow {
+  0%,100% { box-shadow: 0 0 0 0 rgba(212,175,55,0); border-color: rgba(212,175,55,0.3); }
+  50%     { box-shadow: 0 0 28px rgba(212,175,55,0.2); border-color: rgba(212,175,55,0.75); }
+}
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.fade-up { animation: fadeUp 480ms cubic-bezier(0.25,0.46,0.45,0.94) both; }
+.d1 { animation-delay: 0ms; }
+.d2 { animation-delay: 80ms; }
+.d3 { animation-delay: 160ms; }
+.d4 { animation-delay: 240ms; }
+
+.spinner {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 2px solid rgba(212,175,55,0.15);
+  border-top-color: #D4AF37;
+  animation: spin 0.9s linear infinite;
+}
+.typing-1 { animation: blink 1.2s ease-in-out infinite; animation-delay: 0s; }
+.typing-2 { animation: blink 1.2s ease-in-out infinite; animation-delay: 0.2s; }
+.typing-3 { animation: blink 1.2s ease-in-out infinite; animation-delay: 0.4s; }
+
+.upload-zone-idle { animation: pulse-glow 2.8s ease-in-out infinite; }
+
+.skeleton {
+  background: linear-gradient(90deg, #1A1A17 25%, #222220 50%, #1A1A17 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 6px;
+}
+
+@media (max-width: 768px) {
+  .desktop-only { display: none !important; }
+  .mobile-stack { flex-direction: column !important; }
+  .mobile-full { width: 100% !important; flex: none !important; }
+  .mobile-hide-sidebar { display: none !important; }
+}
+@media (min-width: 769px) {
+  .mobile-only { display: none !important; }
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <!-- Home Screen -->
-        <div id="homeScreen" class="screen active">
-            <h1>🎾 Padel Game</h1>
-            <p>Challenge professional padel players!</p>
-            <button onclick="goToMode()">Play Game</button>
-        </div>
+<div id="root"></div>
+<script type="text/babel">
 
-        <!-- Mode Selection Screen -->
-        <div id="modeScreen" class="screen">
-            <h2>Select Game Mode</h2>
-            <button onclick="selectMode('single')">👤 Single Player (vs AI)</button>
-            <button onclick="selectMode('multi')">👥 Multiplayer (2 Players)</button>
-            <button class="back-btn" onclick="goHome()">Back</button>
-        </div>
+/* ─── CONSTANTS ─────────────────────────────────────────── */
 
-        <!-- Player Selection Screen -->
-        <div id="playerScreen" class="screen">
-            <h2>Choose Your Professional Player</h2>
-            <div id="playerGrid" class="player-grid"></div>
-            <button class="back-btn" onclick="goToMode()">Back</button>
-        </div>
+const LOGO_SRC = 'assets/logo-mark.png';
 
-        <!-- Game Screen -->
-        <div id="gameScreen" class="screen">
-            <div class="game-header">
-                <div class="player-info">
-                    <p id="player1Name">Player 1</p>
-                    <div class="score-display" id="score1">0</div>
-                </div>
-                <div>
-                    <h2>Score</h2>
-                </div>
-                <div class="player-info">
-                    <p id="player2Name">Player 2</p>
-                    <div class="score-display" id="score2">0</div>
-                </div>
-            </div>
-            <canvas id="gameCanvas" width="800" height="400"></canvas>
-            <div class="controls">
-                <p id="controlsInfo">Player 1: Mouse | Player 2: Arrow Keys</p>
-                <button onclick="resetGame()">Reset Game</button>
-                <button class="back-btn" onclick="goHome()">Back to Menu</button>
-            </div>
-        </div>
+const SYSTEM_PROMPT = `You are AURUM, an elite padel coach with deep tactical and technical knowledge. You analyze padel points like a World Padel Tour coach would. Your feedback is specific, terminology-rich, and tied to exact moments. You give technical advice on mechanics and tactical advice on decision-making and positioning. You always end with one concrete drill the player can do to improve. You are direct but encouraging.
+
+When the user first provides context about a point or uploads footage description, respond with a STRUCTURED analysis in this exact JSON format wrapped in <analysis> tags:
+<analysis>
+{
+  "keyMoment": { "title": "...", "time": "0:XX", "body": "..." },
+  "technical": [
+    { "num": 1, "time": "0:XX", "title": "...", "body": "...", "tags": ["..."] }
+  ],
+  "tactical": [
+    { "title": "...", "body": "...", "tags": ["..."] }
+  ],
+  "drills": [
+    { "title": "...", "body": "...", "duration": "X min", "focus": "..." }
+  ]
+}
+</analysis>
+
+After the JSON, write a brief natural-language summary (2-3 sentences) as the coach speaking directly to the player.
+
+For follow-up questions (chat), respond conversationally as AURUM coach — no JSON needed, just direct coaching advice.`;
+
+const MOCK_SESSIONS = [
+  { id: 1, title: 'Tuesday League — Backhand Wall', date: 'Apr 29, 2026', shots: 8, side: 'Right', focus: 'Technical', summary: 'Late bandeja contact point. Recovery footwork clean.' },
+  { id: 2, title: 'Club Match — Net Attack Sequence', date: 'Apr 22, 2026', shots: 6, side: 'Left', focus: 'Tactical', summary: 'Good por tres read, but missed the por cuatro option twice.' },
+  { id: 3, title: 'Training Session — Serve Patterns', date: 'Apr 15, 2026', shots: 12, side: 'Right', focus: 'Technical', summary: 'Body T serve reliable. Slice to the T needs more disguise.' },
+  { id: 4, title: 'Regional Tournament — Vibora Timing', date: 'Apr 8, 2026', shots: 5, side: 'Right', focus: 'Drills', summary: 'Víbora contact too early. Suggested hip-level drill helped.' },
+  { id: 5, title: 'Friendly — Defensive Lob Reset', date: 'Apr 1, 2026', shots: 9, side: 'Left', focus: 'Tactical', summary: 'Over-attacking from defensive positions. Reset lob underused.' },
+];
+
+const MOCK_ANALYSIS = {
+  keyMoment: { title: 'Bandeja Contact Point', time: '0:42', body: 'Shot 3 decided the point. Contact too far behind your shoulder — the ball floated long instead of sitting in the corner.' },
+  technical: [
+    { num: 1, time: '0:08', title: 'Serve — Good placement', body: "Your body T serve had good weight and direction. Opponent was pushed back and couldn't attack — solid foundation.", tags: ['Serve', 'Placement'] },
+    { num: 3, time: '0:42', title: 'Bandeja — Late contact', body: 'Contact was behind your shoulder, robbing the shot of compression. Meet the ball level with your leading ear, flatter racquet face for tighter direction.', tags: ['Bandeja', 'Contact Point', 'Key Issue'] },
+    { num: 5, time: '1:02', title: 'Recovery footwork — Clean', body: 'After the bandeja error you split-stepped and returned to center quickly. Your baseline movement is solid.', tags: ['Footwork', 'Recovery'] },
+    { num: 7, time: '1:18', title: 'Smash — Angle choice', body: "Partner's smash to the right corner was well-struck. Driving at the body was slightly higher percentage given your opponent's positioning, but the corner worked.", tags: ['Smash', 'Decision'] },
+  ],
+  tactical: [
+    { title: 'Net position — Too passive post shot 3', body: 'After your bandeja you dropped to service line instead of pushing forward. Even a floating bandeja can be recovered if you aggressively close net immediately after.', tags: ['Positioning', 'Net Play'] },
+    { title: 'Shot 3 — Lob was the better call', body: 'You were pulled wide on the right side. A chiquita only works if opponents are off the net — they were at the T. Percentage play: high globo to reset and recover.', tags: ['Shot Selection', 'Defense'] },
+    { title: 'Por tres opportunity on shot 5', body: "Opponent's partner drifted to center. The left-wall por tres gap was open for ~0.8s. Scan for this when you have mid-court position.", tags: ['Por Tres', 'Awareness'] },
+  ],
+  drills: [
+    { title: 'Bandeja Contact Zone Drill', body: 'Stand perpendicular to wall at 4m. Partner feeds 20 bandejas at shoulder height. Contact must be level with your leading ear — not behind. Film in slow-motion to verify.', duration: '15 min', focus: 'Contact Point' },
+    { title: 'Wide Recovery Globo Reset', body: "Start at right side wall (shot 3 position). Coach feeds a high ball wide right. Your only response: defensive globo to back-left corner. 30 reps. Focus on reset height (min 5m arc) and partner net close.", duration: '20 min', focus: 'Tactical Reset' },
+    { title: 'Por Tres Pattern Recognition', body: 'Net attack position with two opponents. Coach calls "gap" — execute por tres immediately to indicated side. Start at 50%, build to match speed. Target: decision time below 0.5 seconds.', duration: '12 min', focus: 'Pattern Recognition' },
+  ],
+};
+
+const KEY_MOMENTS_DEFAULT = [
+  { time: 8,  label: 'Good serve', type: 'good' },
+  { time: 42, label: 'Bandeja error — key moment', type: 'error' },
+  { time: 62, label: 'Tactical positioning issue', type: 'good' },
+  { time: 78, label: 'Smash winner', type: 'good' },
+];
+
+const PLAYER_PROFILE_DEFAULT = {
+  name: 'Javier M.', level: 'Advanced · Right side',
+  hand: 'Right', side: 'Right side', levelShort: 'Advanced (4.5+)',
+  dominantShots: 'Bandeja, Globo', sessions: 5, topIssue: 'Late contact point',
+};
+
+/* ─── HELPERS ────────────────────────────────────────────── */
+
+function parseAnalysisJson(text) {
+  try {
+    const match = text.match(/<analysis>([\s\S]*?)<\/analysis>/);
+    if (match) return JSON.parse(match[1].trim());
+  } catch(e) {}
+  return null;
+}
+
+function stripAnalysisTags(text) {
+  return text.replace(/<analysis>[\s\S]*?<\/analysis>/g, '').trim();
+}
+
+/* ─── SUB-COMPONENTS ─────────────────────────────────────── */
+
+const Logo = ({ size = 'md' }) => {
+  const sizes = { sm: 28, md: 36, lg: 52 };
+  const px = sizes[size] || 36;
+  const wordmarkSizes = { sm: 20, md: 26, lg: 38 };
+  const wpx = wordmarkSizes[size] || 26;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: size === 'lg' ? 14 : 10 }}>
+      <img src={LOGO_SRC} alt="AURUM" style={{ height: px, width: 'auto', display: 'block' }} />
+      <div>
+        <div style={{
+          fontFamily: "'Cormorant Garamond', serif", fontWeight: 300,
+          fontSize: wpx, letterSpacing: '0.18em',
+          background: 'linear-gradient(90deg, #A8891F 0%, #D4AF37 35%, #E8CC6A 65%, #D4AF37 100%)',
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+          lineHeight: 1,
+        }}>AURUM</div>
+        <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 9, fontWeight: 400, letterSpacing: '0.3em', color: '#5A5854', textTransform: 'uppercase', marginTop: 2 }}>PADEL</div>
+      </div>
     </div>
+  );
+};
 
-    <script src="players.js"></script>
-    <script src="game.js"></script>
+const Btn = ({ children, variant = 'primary', size = 'md', onClick, disabled, style: extra }) => {
+  const base = { fontFamily: "'DM Sans',sans-serif", fontWeight: 600, border: 'none', borderRadius: 8, cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 200ms ease', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap', ...extra };
+  const pads = { sm: '6px 13px', md: '9px 18px', lg: '12px 26px' };
+  const fszs = { sm: 12, md: 14, lg: 15 };
+  const variants = {
+    primary:   { background: disabled ? '#2A2A26' : '#D4AF37', color: disabled ? '#5A5854' : '#0A0A08', padding: pads[size], fontSize: fszs[size] },
+    secondary: { background: 'transparent', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.4)', padding: pads[size], fontSize: fszs[size] },
+    ghost:     { background: 'transparent', color: '#8A8680', border: '1px solid rgba(255,255,255,0.1)', padding: pads[size], fontSize: fszs[size] },
+    icon:      { background: 'rgba(255,255,255,0.06)', color: '#B8B4AC', border: '1px solid rgba(255,255,255,0.08)', width: 34, height: 34, borderRadius: 7, padding: 0, fontSize: 14 },
+  };
+  const [hov, setHov] = React.useState(false);
+  const hovStyle = hov && !disabled ? (variant === 'primary' ? { background: '#E8CC6A', boxShadow: '0 0 20px rgba(212,175,55,0.25)' } : variant === 'secondary' ? { background: 'rgba(212,175,55,0.08)', borderColor: 'rgba(212,175,55,0.7)' } : { background: 'rgba(255,255,255,0.06)', color: '#F0EDE6' }) : {};
+  return (
+    <button style={{ ...base, ...variants[variant], ...hovStyle }} onClick={onClick} disabled={disabled}
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
+      {children}
+    </button>
+  );
+};
+
+const Badge = ({ children, color = 'gold' }) => {
+  const colors = {
+    gold:  { bg: 'rgba(212,175,55,0.1)',  text: '#D4AF37',  border: 'rgba(212,175,55,0.25)' },
+    green: { bg: 'rgba(74,107,82,0.15)',  text: '#7AB887',  border: 'rgba(74,107,82,0.3)' },
+    red:   { bg: 'rgba(192,57,43,0.15)',  text: '#E8584A',  border: 'rgba(192,57,43,0.3)' },
+    gray:  { bg: 'rgba(255,255,255,0.06)', text: '#8A8680', border: 'rgba(255,255,255,0.1)' },
+  };
+  const c = colors[color] || colors.gold;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', background: c.bg, color: c.text, border: `1px solid ${c.border}`, borderRadius: 9999, padding: '3px 9px', fontFamily: "'DM Sans',sans-serif", fontSize: 11, fontWeight: 600 }}>
+      {children}
+    </span>
+  );
+};
+
+const Chip = ({ children, color = 'gold' }) => {
+  const colors = {
+    gold:  { bg: 'rgba(212,175,55,0.1)',  text: '#D4AF37' },
+    green: { bg: 'rgba(74,107,82,0.15)',  text: '#7AB887' },
+    gray:  { bg: 'rgba(255,255,255,0.05)', text: '#8A8680' },
+  };
+  const c = colors[color] || colors.gold;
+  return (
+    <span style={{ display: 'inline-flex', background: c.bg, color: c.text, borderRadius: 4, padding: '3px 7px', fontFamily: "'DM Sans',sans-serif", fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+      {children}
+    </span>
+  );
+};
+
+/* ─── HEADER ─────────────────────────────────────────────── */
+
+const Header = ({ view, onNav, onNewSession }) => {
+  const navItems = [
+    { id: 'upload', label: 'New Analysis' },
+    { id: 'sessions', label: 'Sessions' },
+  ];
+  return (
+    <header style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, background: 'rgba(10,10,8,0.9)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.06)', height: 58, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 20 }}>
+      <Logo size="sm" />
+      <nav style={{ display: 'flex', gap: 2, marginLeft: 8 }} className="desktop-only">
+        {navItems.map(n => (
+          <button key={n.id} onClick={() => onNav(n.id)} style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 500, color: view === n.id ? '#F0EDE6' : '#8A8680', background: view === n.id ? 'rgba(255,255,255,0.06)' : 'transparent', border: 'none', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', transition: 'all 200ms' }}>
+            {n.label}
+          </button>
+        ))}
+      </nav>
+      <div style={{ flex: 1 }}></div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {view === 'analysis' && <Btn variant="ghost" size="sm" onClick={() => onNav('upload')}>New Session</Btn>}
+        <Btn variant="primary" size="sm" onClick={onNewSession}>+ Analyze Point</Btn>
+        <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg,#D4AF37,#A8891F)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans',sans-serif", fontSize: 12, fontWeight: 700, color: '#0A0A08', cursor: 'pointer' }}>J</div>
+      </div>
+    </header>
+  );
+};
+
+/* ─── PLAYER PROFILE SIDEBAR ─────────────────────────────── */
+
+const ProfileSidebar = ({ profile, collapsed, onToggle }) => {
+  const w = collapsed ? 44 : 256;
+  return (
+    <aside style={{ width: w, background: '#0D0D0B', borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', transition: 'width 280ms cubic-bezier(0.25,0.46,0.45,0.94)', overflow: 'hidden', flexShrink: 0, position: 'relative' }} className="desktop-only">
+      <button onClick={onToggle} style={{ position: 'absolute', top: 14, right: 8, width: 26, height: 26, borderRadius: 6, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#8A8680', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, zIndex: 2 }}>
+        {collapsed ? '›' : '‹'}
+      </button>
+      <div style={{ opacity: collapsed ? 0 : 1, transition: 'opacity 180ms', pointerEvents: collapsed ? 'none' : 'auto', padding: '14px 16px 20px', minWidth: 224, marginTop: 48 }}>
+        <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 15, fontWeight: 600, color: '#F0EDE6' }}>{profile.name}</div>
+        <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: '#8A8680', marginBottom: 16, marginTop: 2 }}>{profile.level}</div>
+        {[['Handedness', profile.hand], ['Court side', profile.side], ['Level', profile.levelShort], ['Top shots', profile.dominantShots]].map(([k, v]) => (
+          <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: '#8A8680' }}>{k}</span>
+            <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, fontWeight: 600, color: '#F0EDE6', textAlign: 'right', maxWidth: 100 }}>{v}</span>
+          </div>
+        ))}
+        <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#5A5854', margin: '16px 0 8px' }}>Stats</div>
+        <div style={{ background: '#1A1A17', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '10px 12px', marginBottom: 6 }}>
+          <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 10, color: '#5A5854', marginBottom: 2 }}>Sessions analyzed</div>
+          <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 22, fontWeight: 600, color: '#F0EDE6' }}>{profile.sessions}</div>
+        </div>
+        <div style={{ background: '#1A1A17', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '10px 12px' }}>
+          <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 10, color: '#5A5854', marginBottom: 2 }}>Recurring issue</div>
+          <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 600, color: '#F0EDE6' }}>{profile.topIssue}</div>
+        </div>
+      </div>
+    </aside>
+  );
+};
+
+/* ─── SESSIONS SCREEN ────────────────────────────────────── */
+
+const SessionsScreen = ({ onOpen }) => {
+  const focusColor = { Technical: 'gold', Tactical: 'green', Drills: 'gray' };
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: '80px 32px 40px' }}>
+      <div className="fade-up d1" style={{ marginBottom: 28 }}>
+        <div style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 300, fontSize: 40, letterSpacing: '-0.02em', color: '#F0EDE6', marginBottom: 6 }}>Session History</div>
+        <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 14, color: '#8A8680' }}>{MOCK_SESSIONS.length} points analyzed</div>
+      </div>
+      <div className="fade-up d2" style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 780 }}>
+        {MOCK_SESSIONS.map((s) => (
+          <div key={s.id} onClick={() => onOpen(s)} style={{ background: '#111110', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '16px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 16, transition: 'border-color 200ms, box-shadow 200ms' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(212,175,55,0.25)'; e.currentTarget.style.boxShadow = '0 0 16px rgba(212,175,55,0.06)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.boxShadow = 'none'; }}>
+            <div style={{ width: 52, height: 38, background: '#1A1A17', borderRadius: 6, border: '1px solid rgba(255,255,255,0.06)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D4AF37', fontSize: 16 }}>▶</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 14, fontWeight: 600, color: '#F0EDE6', marginBottom: 3 }}>{s.title}</div>
+              <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: '#8A8680' }}>{s.date} · {s.shots} shots · {s.side} side</div>
+              <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: '#8A8680', marginTop: 2 }}>{s.summary}</div>
+            </div>
+            <Badge color={focusColor[s.focus] || 'gold'}>{s.focus}</Badge>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/* ─── UPLOAD ZONE ────────────────────────────────────────── */
+
+function openVideoPicker(onFile) {
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'video/*';
+  inp.style.cssText = 'position:fixed;top:-999px;left:-999px;opacity:0;';
+  document.body.appendChild(inp);
+  inp.addEventListener('change', () => {
+    const f = inp.files[0];
+    document.body.removeChild(inp);
+    if (f) onFile(f);
+  });
+  setTimeout(() => inp.click(), 10);
+}
+window.openVideoPicker = openVideoPicker;
+
+const UploadZone = ({ onAnalyze, profile }) => {
+  const [url, setUrl] = React.useState('');
+  const [description, setDescription] = React.useState('');
+  const [dragOver, setDragOver] = React.useState(false);
+  const [step, setStep] = React.useState('idle');
+  const [videoFile, setVideoFile] = React.useState(null);
+  const [videoBlobUrl, setVideoBlobUrl] = React.useState(null);
+
+  const examples = [
+    { title: 'Bandeja technique deep-dive', desc: 'Right-side player, advanced. Contact point and recovery.', tag: 'Technical', prompt: 'Analyze this point: I am a right-side player at advanced level. On shot 3 I attempted a bandeja from the right wall but the ball went long. I think my contact point was late. Please give me a full analysis.' },
+    { title: 'Net attack positioning', desc: 'Aggressive net approach after a weak globo return.', tag: 'Tactical', prompt: "Analyze this padel point: After a weak globo from my opponents, I attempted an aggressive net approach. I'm right-handed, playing right side at intermediate-advanced level. The point lasted 6 shots and we eventually lost it at the net." },
+    { title: 'Víbora timing fault', desc: 'Common timing fault on the víbora, with drill suggestions.', tag: 'Drills', prompt: "Please analyze this padel point focusing on my víbora timing. I'm right-handed, right side, advanced level. The víbora on shot 4 felt off — I think I was contacting too early and the ball went into the net." },
+  ];
+
+  const handleFileSelected = (file) => {
+    if (!file || !file.type.startsWith('video/')) return;
+    const blobUrl = URL.createObjectURL(file);
+    setVideoFile(file);
+    setVideoBlobUrl(blobUrl);
+    setStep('context');
+  };
+
+  const handleAnalyze = (customPrompt) => {
+    const fileContext = videoFile ? `The player uploaded a video file: "${videoFile.name}" (${(videoFile.size/1024/1024).toFixed(1)}MB). ` : '';
+    const urlContext = url ? `Video URL: ${url}. ` : '';
+    const profileContext = `Player profile: ${profile.hand}-handed, ${profile.side}, ${profile.levelShort}. Dominant shots: ${profile.dominantShots}.`;
+    const finalPrompt = customPrompt || (description ? `${fileContext}${urlContext}${description} ${profileContext}` : null) || (videoFile || url ? `${fileContext}${urlContext}${profileContext} Please analyze this padel point and provide full technical and tactical feedback.` : null);
+    if (!finalPrompt) { setStep('context'); return; }
+    onAnalyze(finalPrompt, videoBlobUrl);
+  };
+
+  if (step === 'analyzing') {
+    return (
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, padding: '80px 32px' }}>
+        <div className="spinner"></div>
+        <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 34, fontWeight: 300, color: '#F0EDE6', textAlign: 'center' }}>Analyzing your point…</div>
+        <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 14, color: '#8A8680', textAlign: 'center' }}>AURUM is reviewing the footage and building your report.</div>
+      </div>
+    );
+  }
+
+  if (step === 'context') {
+    return (
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 32px', gap: 20 }}>
+        <div className="fade-up d1" style={{ textAlign: 'center' }}>
+          <div style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 300, fontSize: 36, color: '#F0EDE6', marginBottom: 8 }}>Describe the point</div>
+          <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 14, color: '#8A8680' }}>Help AURUM understand what happened so the analysis is specific to your game.</div>
+        </div>
+        <textarea
+          className="fade-up d2"
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+          placeholder="e.g. 'I'm right-handed, right side, advanced level. On shot 3 I attempted a bandeja from the right wall but sent it long. My opponent then attacked the net…'"
+          style={{ width: '100%', maxWidth: 560, height: 120, background: '#1A1A17', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '12px 16px', fontFamily: "'DM Sans',sans-serif", fontSize: 14, color: '#F0EDE6', outline: 'none', resize: 'none', lineHeight: 1.6 }}
+          onFocus={e => { e.target.style.borderColor = 'rgba(212,175,55,0.6)'; }}
+          onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+        />
+        <div className="fade-up d3" style={{ display: 'flex', gap: 10 }}>
+          <Btn variant="ghost" size="md" onClick={() => setStep('idle')}>Back</Btn>
+          <Btn variant="primary" size="md" onClick={() => handleAnalyze(description)} disabled={!description.trim()}>Analyze This Point</Btn>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 24px 40px', gap: 36 }}>
+      <div className="fade-up d1" style={{ textAlign: 'center' }}>
+        <div style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 300, fontSize: 48, letterSpacing: '-0.02em', color: '#F0EDE6', lineHeight: 1.15 }}>
+          Every point,{' '}
+          <span style={{ fontStyle: 'italic', background: 'linear-gradient(90deg,#A8891F,#D4AF37,#E8CC6A,#D4AF37)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>analyzed.</span>
+        </div>
+        <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 15, color: '#8A8680', marginTop: 10, lineHeight: 1.6 }}>Upload match footage or paste a YouTube link.<br />Your AI padel coach analyzes every shot.</div>
+      </div>
+
+      <div className="fade-up d2" style={{ width: '100%', maxWidth: 540 }}>
+        <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#5A5854', marginBottom: 8, textAlign: 'center' }}>Upload Your Video</div>
+        <div
+          className={dragOver ? '' : 'upload-zone-idle'}
+          style={{ border: `1.5px dashed ${dragOver ? 'rgba(212,175,55,0.8)' : 'rgba(212,175,55,0.3)'}`, borderRadius: 14, background: dragOver ? 'rgba(212,175,55,0.07)' : 'rgba(212,175,55,0.02)', padding: '32px 28px', textAlign: 'center', cursor: 'pointer', transition: 'all 250ms ease', boxShadow: dragOver ? '0 0 32px rgba(212,175,55,0.2)' : 'none' }}
+          onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if(f && f.type.startsWith('video/')) handleFileSelected(f); else setStep('context'); }}
+          onClick={() => openVideoPicker(handleFileSelected)}
+        >
+          <div style={{ fontSize: 32, color: '#D4AF37', marginBottom: 10 }}>↑</div>
+          <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 16, fontWeight: 500, color: '#F0EDE6' }}>Drop your video here</div>
+          <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, color: '#8A8680', marginTop: 4 }}>MP4, MOV, AVI — up to 2GB</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '14px 0' }}>
+            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }}></div>
+            <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: '#5A5854' }}>or paste a link</span>
+            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }}></div>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }} onClick={e => e.stopPropagation()}>
+            <input
+              value={url} onChange={e => setUrl(e.target.value)}
+              placeholder="https://youtube.com/watch?v=…"
+              style={{ flex: 1, background: '#1A1A17', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 12px', fontFamily: "'DM Sans',sans-serif", fontSize: 13, color: '#F0EDE6', outline: 'none' }}
+              onFocus={e => { e.target.style.borderColor = 'rgba(212,175,55,0.6)'; }}
+              onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+            />
+            <Btn variant="primary" size="sm" onClick={() => { if(url) { setStep('context'); } else { openVideoPicker(handleFileSelected); } }}>Analyze</Btn>
+          </div>
+        </div>
+      </div>
+
+      <div className="fade-up d3" style={{ width: '100%', maxWidth: 680 }}>
+        <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#5A5854', marginBottom: 12, textAlign: 'center' }}>Try an Example</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }} className="mobile-stack">
+          {examples.map((ex, i) => (
+            <div key={i} onClick={() => handleAnalyze(ex.prompt)} style={{ background: '#111110', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '16px 16px', cursor: 'pointer', transition: 'border-color 200ms, box-shadow 200ms' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(212,175,55,0.3)'; e.currentTarget.style.boxShadow = '0 0 16px rgba(212,175,55,0.08)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.boxShadow = 'none'; }}>
+              <Chip color={ex.tag === 'Technical' ? 'gold' : ex.tag === 'Tactical' ? 'green' : 'gray'}>{ex.tag}</Chip>
+              <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 600, color: '#F0EDE6', margin: '8px 0 5px' }}>{ex.title}</div>
+              <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: '#8A8680', lineHeight: 1.5 }}>{ex.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── VIDEO PLAYER ───────────────────────────────────────── */
+
+const VideoPlayer = ({ keyMoments, videoSrc }) => {
+  const videoRef = React.useRef(null);
+  const [playing, setPlaying] = React.useState(false);
+  const [progress, setProgress] = React.useState(0);
+  const [duration, setDuration] = React.useState(0);
+  const [currentTime, setCurrentTime] = React.useState(0);
+  const [muted, setMuted] = React.useState(false);
+  const [src, setSrc] = React.useState(videoSrc || null);
+  const [dragOver, setDragOver] = React.useState(false);
+  const [showControls, setShowControls] = React.useState(true);
+  const hideTimer = React.useRef(null);
+
+  React.useEffect(() => { if (videoSrc) setSrc(videoSrc); }, [videoSrc]);
+
+  React.useEffect(() => {
+    if (src && videoRef.current) {
+      const saved = localStorage.getItem('aurum_video_time_' + src.substring(0, 40));
+      if (saved) videoRef.current.currentTime = parseFloat(saved);
+    }
+  }, [src]);
+
+  const onTimeUpdate = () => {
+    if (!videoRef.current) return;
+    const v = videoRef.current;
+    const pct = v.duration ? (v.currentTime / v.duration) * 100 : 0;
+    setProgress(pct);
+    setCurrentTime(v.currentTime);
+    localStorage.setItem('aurum_video_time_' + (src || '').substring(0, 40), v.currentTime);
+  };
+
+  const onDurationChange = () => {
+    if (!videoRef.current) return;
+    setDuration(videoRef.current.duration || 0);
+  };
+
+  const onEnded = () => setPlaying(false);
+
+  const togglePlay = () => {
+    if (!videoRef.current || !src) return;
+    if (playing) { videoRef.current.pause(); setPlaying(false); }
+    else { videoRef.current.play(); setPlaying(true); }
+  };
+
+  const seek = (e) => {
+    if (!videoRef.current || !duration) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    videoRef.current.currentTime = pct * duration;
+    setProgress(pct * 100);
+  };
+
+  const seekToTime = (t) => {
+    if (!videoRef.current || !duration) return;
+    videoRef.current.currentTime = t;
+    setProgress((t / duration) * 100);
+  };
+
+  const toggleMute = () => {
+    if (!videoRef.current) return;
+    videoRef.current.muted = !muted;
+    setMuted(m => !m);
+  };
+
+  const fmt = (secs) => {
+    if (!secs || isNaN(secs)) return '0:00';
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m}:${String(s).padStart(2,'0')}`;
+  };
+
+  const handleFile = (file) => {
+    if (!file || !file.type.startsWith('video/')) return;
+    const url = URL.createObjectURL(file);
+    setSrc(url);
+    setPlaying(false);
+    setProgress(0);
+    setCurrentTime(0);
+    setDuration(0);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    handleFile(e.dataTransfer.files[0]);
+  };
+
+  const resetHideTimer = () => {
+    setShowControls(true);
+    clearTimeout(hideTimer.current);
+    if (playing) hideTimer.current = setTimeout(() => setShowControls(false), 2500);
+  };
+  React.useEffect(() => { return () => clearTimeout(hideTimer.current); }, []);
+  React.useEffect(() => { if (!playing) setShowControls(true); }, [playing]);
+
+  const overlayVisible = showControls || !playing || !src;
+
+  return (
+    <div
+      style={{ background: '#000', position: 'relative', width: '100%', aspectRatio: '16/9', flexShrink: 0, overflow: 'hidden', cursor: src ? 'pointer' : 'default' }}
+      onMouseMove={resetHideTimer}
+      onMouseLeave={() => playing && setShowControls(false)}
+    >
+      {src && (
+        <video
+          ref={videoRef}
+          src={src}
+          style={{ width:'100%', height:'100%', display:'block', objectFit:'contain', background:'#000' }}
+          onTimeUpdate={onTimeUpdate}
+          onDurationChange={onDurationChange}
+          onLoadedMetadata={onDurationChange}
+          onEnded={onEnded}
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onClick={togglePlay}
+          playsInline
+        />
+      )}
+
+      {!src && (
+        <div
+          style={{ width:'100%', height:'100%', background:'#0D0D0B', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:12, border: dragOver ? '2px dashed rgba(212,175,55,0.8)' : '2px dashed transparent', boxSizing:'border-box', transition:'border-color 200ms', backgroundImage:'repeating-linear-gradient(0deg,rgba(74,107,82,0.04) 0,rgba(74,107,82,0.04) 1px,transparent 1px,transparent 40px),repeating-linear-gradient(90deg,rgba(74,107,82,0.04) 0,rgba(74,107,82,0.04) 1px,transparent 1px,transparent 40px)' }}
+          onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          onClick={() => openVideoPicker(handleFile)}
+        >
+          <div style={{ width:56,height:56,borderRadius:'50%',background:'rgba(212,175,55,0.1)',border:'1px solid rgba(212,175,55,0.3)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,color:'#D4AF37',cursor:'pointer',transition:'all 200ms' }}
+            onMouseEnter={e=>e.currentTarget.style.background='rgba(212,175,55,0.2)'}
+            onMouseLeave={e=>e.currentTarget.style.background='rgba(212,175,55,0.1)'}>
+            ↑
+          </div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:500,color:'#F0EDE6' }}>Drop video here or click to browse</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:'#8A8680' }}>MP4, MOV, AVI, WebM</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:'#5A5854',marginTop:4 }}>or use a YouTube URL in the upload screen</div>
+        </div>
+      )}
+
+      {src && (
+        <div style={{ position:'absolute',bottom:0,left:0,right:0,padding:'40px 14px 10px', background:'linear-gradient(to top,rgba(0,0,0,0.9) 0%,transparent 100%)', opacity: overlayVisible ? 1 : 0, transition:'opacity 300ms ease', pointerEvents: overlayVisible ? 'auto' : 'none' }}>
+          <div onClick={seek} style={{ width:'100%',height:4,background:'rgba(255,255,255,0.12)',borderRadius:2,position:'relative',cursor:'pointer',marginBottom:10 }}>
+            <div style={{ height:'100%',background:'#D4AF37',borderRadius:2,width:`${progress}%`,pointerEvents:'none' }}></div>
+            <div style={{ position:'absolute',top:'50%',left:`${progress}%`,transform:'translate(-50%,-50%)',width:13,height:13,borderRadius:'50%',background:'#D4AF37',boxShadow:'0 0 8px rgba(212,175,55,0.6)',pointerEvents:'none' }}></div>
+            {keyMoments && duration > 0 && keyMoments.map((km,i) => (
+              <div key={i}
+                onClick={e => { e.stopPropagation(); seekToTime(km.time); }}
+                title={km.label}
+                style={{ position:'absolute',top:'50%',left:`${(km.time/duration)*100}%`,transform:'translate(-50%,-50%)',width:9,height:9,borderRadius:'50%',background:km.type==='error'?'#C0392B':'#E8CC6A',boxShadow:km.type==='error'?'0 0 6px rgba(192,57,43,0.7)':'0 0 6px rgba(212,175,55,0.7)',cursor:'pointer',border:'1.5px solid #000',zIndex:3 }}
+              ></div>
+            ))}
+          </div>
+          <div style={{ display:'flex',alignItems:'center',gap:8 }}>
+            <button onClick={togglePlay} style={{ width:32,height:32,borderRadius:7,background:'rgba(255,255,255,0.12)',border:'none',color:'#F0EDE6',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,flexShrink:0 }}>
+              {playing
+                ? <span style={{ display:'flex',gap:3 }}><span style={{ width:3,height:16,background:'#F0EDE6',borderRadius:1,display:'block' }}></span><span style={{ width:3,height:16,background:'#F0EDE6',borderRadius:1,display:'block' }}></span></span>
+                : <span style={{ width:0,height:0,borderTop:'8px solid transparent',borderBottom:'8px solid transparent',borderLeft:'13px solid #F0EDE6',display:'block',marginLeft:2 }}></span>}
+            </button>
+            <button onClick={toggleMute} style={{ width:32,height:32,borderRadius:7,background:'rgba(255,255,255,0.12)',border:'none',color:'#F0EDE6',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,flexShrink:0 }}>
+              {muted ? '🔇' : '🔊'}
+            </button>
+            <span style={{ fontFamily:"'JetBrains Mono',monospace",fontSize:12,color:'#F0EDE6',flexShrink:0 }}>{fmt(currentTime)}</span>
+            <span style={{ fontFamily:"'JetBrains Mono',monospace",fontSize:12,color:'rgba(255,255,255,0.35)',flexShrink:0 }}>/</span>
+            <span style={{ fontFamily:"'JetBrains Mono',monospace",fontSize:12,color:'rgba(255,255,255,0.5)',flexShrink:0 }}>{fmt(duration)}</span>
+            <div style={{ flex:1 }}></div>
+            <button onClick={e => { e.stopPropagation(); openVideoPicker(handleFile); }} style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:600,background:'rgba(255,255,255,0.1)',color:'#B8B4AC',border:'none',borderRadius:6,padding:'5px 10px',cursor:'pointer' }}>
+              Change video
+            </button>
+            <Chip color="gray">HD</Chip>
+          </div>
+        </div>
+      )}
+
+      {src && !playing && duration > 0 && (
+        <div onClick={togglePlay} style={{ position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',width:64,height:64,borderRadius:'50%',background:'rgba(0,0,0,0.5)',border:'1px solid rgba(212,175,55,0.4)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',backdropFilter:'blur(4px)',transition:'all 200ms' }}
+          onMouseEnter={e=>{ e.currentTarget.style.background='rgba(212,175,55,0.2)'; e.currentTarget.style.boxShadow='0 0 28px rgba(212,175,55,0.3)'; }}
+          onMouseLeave={e=>{ e.currentTarget.style.background='rgba(0,0,0,0.5)'; e.currentTarget.style.boxShadow='none'; }}>
+          <div style={{ width:0,height:0,borderTop:'12px solid transparent',borderBottom:'12px solid transparent',borderLeft:'20px solid #D4AF37',marginLeft:4 }}></div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ─── ANALYSIS PANEL ─────────────────────────────────────── */
+
+const AnalysisPanel = ({ analysis, loading }) => {
+  const [tab, setTab] = React.useState('technical');
+  const tabs = [{ id:'technical',label:'Technical' },{ id:'tactical',label:'Tactical' },{ id:'drills',label:'Drills' }];
+
+  if (loading) {
+    return (
+      <div style={{ padding: '20px 24px', display:'flex', flexDirection:'column', gap:12 }}>
+        {[120,80,100].map((h,i) => <div key={i} className="skeleton" style={{ height:h }}></div>)}
+      </div>
+    );
+  }
+
+  if (!analysis) return null;
+
+  const renderTechnical = () => (
+    <>
+      {analysis.keyMoment && (
+        <div style={{ background:'#1A1A17', border:'1px solid rgba(212,175,55,0.25)', borderRadius:10, padding:'14px 16px', boxShadow:'0 0 16px rgba(212,175,55,0.06)', marginBottom:4 }}>
+          <div style={{ display:'inline-flex',alignItems:'center',gap:4,background:'rgba(212,175,55,0.1)',color:'#D4AF37',border:'1px solid rgba(212,175,55,0.2)',borderRadius:9999,padding:'2px 8px',fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:600,marginBottom:8 }}>★ Key Moment</div>
+          <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:8 }}>
+            <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:600,color:'#F0EDE6',flex:1 }}>{analysis.keyMoment.title}</span>
+            <span style={{ fontFamily:"'JetBrains Mono',monospace",fontSize:11,color:'#5A5854' }}>{analysis.keyMoment.time}</span>
+          </div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:'#B8B4AC',lineHeight:1.6 }}>{analysis.keyMoment.body}</div>
+        </div>
+      )}
+      {analysis.technical && analysis.technical.map((s,i) => (
+        <div key={i} style={{ background:'#1A1A17',border:'1px solid rgba(255,255,255,0.06)',borderRadius:10,padding:'13px 15px' }}>
+          <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:7 }}>
+            <span style={{ fontFamily:"'JetBrains Mono',monospace",fontSize:11,color:'#5A5854',flexShrink:0 }}>Shot {s.num}</span>
+            <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:600,color:'#F0EDE6',flex:1 }}>{s.title}</span>
+            <span style={{ fontFamily:"'JetBrains Mono',monospace",fontSize:11,color:'#5A5854' }}>{s.time}</span>
+          </div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:'#B8B4AC',lineHeight:1.6 }}>{s.body}</div>
+          {s.tags && <div style={{ display:'flex',gap:5,marginTop:9,flexWrap:'wrap' }}>{s.tags.map((t,j)=><Chip key={j}>{t}</Chip>)}</div>}
+        </div>
+      ))}
+    </>
+  );
+
+  const renderTactical = () => (
+    <>
+      {analysis.tactical && analysis.tactical.map((item,i) => (
+        <div key={i} style={{ background:'#1A1A17',border:'1px solid rgba(255,255,255,0.06)',borderRadius:10,padding:'13px 15px' }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:600,color:'#F0EDE6',marginBottom:7 }}>{item.title}</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:'#B8B4AC',lineHeight:1.6 }}>{item.body}</div>
+          {item.tags && <div style={{ display:'flex',gap:5,marginTop:9,flexWrap:'wrap' }}>{item.tags.map((t,j)=><Chip key={j} color="green">{t}</Chip>)}</div>}
+        </div>
+      ))}
+    </>
+  );
+
+  const renderDrills = () => (
+    <>
+      {analysis.drills && analysis.drills.map((d,i) => (
+        <div key={i} style={{ background:'#1A1A17',border:'1px solid rgba(255,255,255,0.06)',borderRadius:10,padding:'15px 16px' }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,fontWeight:600,letterSpacing:'0.12em',textTransform:'uppercase',color:'#D4AF37',marginBottom:5 }}>Drill {i+1}</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:600,color:'#F0EDE6',marginBottom:7 }}>{d.title}</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:'#B8B4AC',lineHeight:1.65 }}>{d.body}</div>
+          <div style={{ display:'flex',gap:6,marginTop:10 }}>
+            <Chip color="gray">{d.duration}</Chip>
+            <Chip color="gray">{d.focus}</Chip>
+          </div>
+        </div>
+      ))}
+    </>
+  );
+
+  return (
+    <div style={{ display:'flex',flexDirection:'column',height:'100%',overflow:'hidden' }}>
+      <div style={{ display:'flex',borderBottom:'1px solid rgba(255,255,255,0.08)',padding:'0 20px',flexShrink:0 }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{ padding:'13px 14px 11px',fontSize:13,fontWeight:500,fontFamily:"'DM Sans',sans-serif",color:tab===t.id?'#D4AF37':'#8A8680',background:'transparent',border:'none',cursor:'pointer',position:'relative',transition:'color 200ms' }}>
+            {t.label}
+            {tab===t.id && <div style={{ position:'absolute',bottom:-1,left:0,right:0,height:2,background:'#D4AF37',borderRadius:'2px 2px 0 0' }}></div>}
+          </button>
+        ))}
+      </div>
+      <div style={{ flex:1,overflowY:'auto',padding:'16px 20px',display:'flex',flexDirection:'column',gap:10 }}>
+        {tab==='technical' && renderTechnical()}
+        {tab==='tactical'  && renderTactical()}
+        {tab==='drills'    && renderDrills()}
+      </div>
+    </div>
+  );
+};
+
+/* ─── CHAT COACH (live Claude) ───────────────────────────── */
+
+const ChatCoach = ({ initialContext, profile, analysisReady }) => {
+  const systemPrompt = `${SYSTEM_PROMPT}\n\nThe player you're coaching: ${profile.hand}-handed, plays ${profile.side}, level: ${profile.levelShort}. Dominant shots: ${profile.dominantShots}.`;
+
+  const [messages, setMessages] = React.useState([
+    { role: 'coach', text: "Analyzing your point now — this takes a moment. I'll have a full breakdown ready shortly. Feel free to ask me anything while you wait." }
+  ]);
+  const [input, setInput] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const endRef = React.useRef(null);
+  const apiMessages = React.useRef([]);
+  const hasWelcomed = React.useRef(false);
+
+  React.useEffect(() => {
+    if (initialContext) apiMessages.current = [{ role: 'user', content: initialContext }];
+  }, [initialContext]);
+
+  React.useEffect(() => {
+    if (analysisReady && !hasWelcomed.current) {
+      hasWelcomed.current = true;
+      setMessages(m => [...m, { role: 'coach', text: "Analysis is ready — check the Technical, Tactical and Drill tabs on the right. Ask me anything about the point: a specific shot, what you should have done differently, or how to work on these patterns." }]);
+    }
+  }, [analysisReady]);
+
+  React.useEffect(() => {
+    if (endRef.current) {
+      const parent = endRef.current.parentElement;
+      parent.scrollTop = endRef.current.offsetTop - parent.clientHeight + 80;
+    }
+  }, [messages, loading]);
+
+  const send = async () => {
+    if (!input.trim() || loading) return;
+    const userText = input.trim();
+    setInput('');
+    setMessages(m => [...m, { role:'user', text:userText }]);
+    setLoading(true);
+    apiMessages.current.push({ role:'user', content:userText });
+
+    try {
+      const response = await window.claude.complete({
+        messages: apiMessages.current.map(m => ({ role: m.role === 'coach' ? 'assistant' : 'user', content: m.content || m.text })),
+        system: systemPrompt,
+      });
+      const coachText = stripAnalysisTags(response);
+      apiMessages.current.push({ role:'assistant', content:coachText });
+      setMessages(m => [...m, { role:'coach', text:coachText }]);
+    } catch(e) {
+      setMessages(m => [...m, { role:'coach', text:"There was an issue reaching AURUM. Please try again." }]);
+    }
+    setLoading(false);
+  };
+
+  const handleKey = e => { if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); send(); } };
+
+  const msgStyle = { maxWidth:'88%' };
+  const bubbleBase = { padding:'9px 13px', borderRadius:10, fontFamily:"'DM Sans',sans-serif", fontSize:13, lineHeight:1.6 };
+
+  return (
+    <div style={{ display:'flex',flexDirection:'column',borderTop:'1px solid rgba(255,255,255,0.06)',background:'#0A0A08',flexShrink:0 }}>
+      <div style={{ padding:'11px 18px',borderBottom:'1px solid rgba(255,255,255,0.06)',display:'flex',alignItems:'center',gap:9 }}>
+        <div style={{ width:26,height:26,borderRadius:'50%',background:'linear-gradient(135deg,#D4AF37,#A8891F)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#0A0A08',fontFamily:"'DM Sans',sans-serif",flexShrink:0 }}>A</div>
+        <div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:600,color:'#F0EDE6' }}>Chat with AURUM</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:'#4A6B52' }}>● Live AI coach</div>
+        </div>
+      </div>
+      <div style={{ padding:'12px 16px',display:'flex',flexDirection:'column',gap:9,maxHeight:200,overflowY:'auto' }}>
+        {messages.map((m,i) => (
+          <div key={i} style={{ ...msgStyle, alignSelf:m.role==='coach'?'flex-start':'flex-end' }}>
+            <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,fontWeight:600,letterSpacing:'0.03em',marginBottom:3,color:m.role==='coach'?'#D4AF37':'#8A8680',textAlign:m.role==='coach'?'left':'right' }}>{m.role==='coach'?'AURUM':'You'}</div>
+            <div style={{ ...bubbleBase, ...(m.role==='coach'?{background:'#1A1A17',color:'#F0EDE6',borderBottomLeftRadius:3}:{background:'rgba(212,175,55,0.12)',color:'#F0EDE6',border:'1px solid rgba(212,175,55,0.2)',borderBottomRightRadius:3}) }}>{m.text}</div>
+          </div>
+        ))}
+        {loading && (
+          <div style={{ ...msgStyle, alignSelf:'flex-start' }}>
+            <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,fontWeight:600,color:'#D4AF37',marginBottom:3 }}>AURUM</div>
+            <div style={{ ...bubbleBase,background:'#1A1A17',color:'#F0EDE6',borderBottomLeftRadius:3,display:'flex',gap:4,alignItems:'center' }}>
+              {[1,2,3].map(n=><span key={n} style={{ display:'inline-block',width:5,height:5,borderRadius:'50%',background:'#D4AF37' }} className={`typing-${n}`}></span>)}
+            </div>
+          </div>
+        )}
+        <div ref={endRef}></div>
+      </div>
+      <div style={{ display:'flex',gap:8,padding:'10px 14px',borderTop:'1px solid rgba(255,255,255,0.06)' }}>
+        <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={handleKey} placeholder="Ask AURUM a question…"
+          style={{ flex:1,background:'#1A1A17',border:'1px solid rgba(255,255,255,0.1)',borderRadius:8,padding:'9px 12px',fontFamily:"'DM Sans',sans-serif",fontSize:13,color:'#F0EDE6',outline:'none',transition:'border-color 200ms' }}
+          onFocus={e=>{e.target.style.borderColor='rgba(212,175,55,0.6)';}}
+          onBlur={e=>{e.target.style.borderColor='rgba(255,255,255,0.1)';}}
+          disabled={loading}
+        />
+        <Btn variant="primary" size="sm" onClick={send} disabled={loading || !input.trim()}>Send</Btn>
+      </div>
+    </div>
+  );
+};
+
+/* ─── ANALYSIS VIEW ──────────────────────────────────────── */
+
+const AnalysisView = ({ analysisData, analysisLoading, prompt, profile, videoSrc }) => {
+  const [isMobileTab, setMobileTab] = React.useState('analysis');
+
+  return (
+    <div style={{ display:'flex',flex:1,overflow:'hidden' }} className="mobile-stack">
+      <div className="mobile-only" style={{ position:'fixed',bottom:0,left:0,right:0,background:'rgba(10,10,8,0.95)',borderTop:'1px solid rgba(255,255,255,0.08)',display:'flex',zIndex:50 }}>
+        {['video','analysis'].map(t => (
+          <button key={t} onClick={()=>setMobileTab(t)} style={{ flex:1,padding:'12px',fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:600,background:'transparent',border:'none',color:isMobileTab===t?'#D4AF37':'#8A8680',cursor:'pointer',textTransform:'capitalize',transition:'color 200ms',borderTop:isMobileTab===t?'2px solid #D4AF37':'2px solid transparent' }}>
+            {t === 'video' ? 'Video' : 'Analysis'}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ display:'flex',flexDirection:'column',flex:'0 0 58%',overflow:'hidden',borderRight:'1px solid rgba(255,255,255,0.06)' }} className={`mobile-full ${isMobileTab !== 'video' ? 'desktop-only' : ''}`}>
+        <div style={{ padding:'10px 18px',borderBottom:'1px solid rgba(255,255,255,0.06)',display:'flex',alignItems:'center',gap:10,flexShrink:0 }}>
+          <div style={{ flex:1 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:600,color:'#F0EDE6' }}>Match Point Analysis</div>
+              {analysisLoading && (
+                <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                  <div style={{ width:14,height:14,borderRadius:'50%',border:'1.5px solid rgba(212,175,55,0.2)',borderTopColor:'#D4AF37',animation:'spin 0.9s linear infinite' }}></div>
+                  <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:'#D4AF37' }}>Analyzing…</span>
+                </div>
+              )}
+            </div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:'#8A8680' }}>Just now · {profile.name} · {profile.side} · {profile.levelShort}</div>
+          </div>
+          <Btn variant="secondary" size="sm">Export PDF</Btn>
+        </div>
+        <VideoPlayer keyMoments={KEY_MOMENTS_DEFAULT} videoSrc={videoSrc} />
+        <ChatCoach initialContext={prompt} profile={profile} analysisReady={!!analysisData} />
+      </div>
+
+      <div style={{ flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#0D0D0B' }} className={`mobile-full ${isMobileTab !== 'analysis' ? 'desktop-only' : ''}`}>
+        <AnalysisPanel analysis={analysisData} loading={analysisLoading} />
+      </div>
+    </div>
+  );
+};
+
+/* ─── ROOT APP ───────────────────────────────────────────── */
+
+const App = () => {
+  const [view, setView] = React.useState('upload');
+  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
+  const [analysisData, setAnalysisData] = React.useState(null);
+  const [analysisLoading, setAnalysisLoading] = React.useState(false);
+  const [prompt, setPrompt] = React.useState('');
+  const [videoSrc, setVideoSrc] = React.useState(null);
+  const profile = PLAYER_PROFILE_DEFAULT;
+
+  const systemPromptFull = `${SYSTEM_PROMPT}\n\nThe player you're coaching: ${profile.hand}-handed, plays ${profile.side}, level: ${profile.levelShort}. Dominant shots: ${profile.dominantShots}.`;
+
+  const handleAnalyze = async (userPrompt, blobUrl) => {
+    setView('analysis');
+    setAnalysisLoading(true);
+    setAnalysisData(null);
+    setPrompt(userPrompt);
+    if (blobUrl) setVideoSrc(blobUrl);
+
+    try {
+      const response = await window.claude.complete({
+        messages: [{ role:'user', content: userPrompt }],
+        system: systemPromptFull,
+      });
+      const parsed = parseAnalysisJson(response);
+      setAnalysisData(parsed || MOCK_ANALYSIS);
+    } catch(e) {
+      setAnalysisData(MOCK_ANALYSIS);
+    }
+    setAnalysisLoading(false);
+  };
+
+  const handleSessionOpen = (session) => {
+    setAnalysisData(MOCK_ANALYSIS);
+    setPrompt(`Revisiting session: ${session.title}. ${session.summary}`);
+    setView('analysis');
+  };
+
+  return (
+    <div style={{ height:'100vh',display:'flex',flexDirection:'column',overflow:'hidden' }}>
+      <Header view={view} onNav={setView} onNewSession={() => { setView('upload'); setAnalysisData(null); }} />
+      <div style={{ display:'flex',flex:1,overflow:'hidden',marginTop:58 }}>
+        {view === 'analysis' && (
+          <ProfileSidebar profile={profile} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(c => !c)} />
+        )}
+        <div style={{ flex:1,display:'flex',flexDirection:'column',overflow:'hidden' }}>
+          {view === 'upload'   && <UploadZone onAnalyze={handleAnalyze} profile={profile} />}
+          {view === 'sessions' && <SessionsScreen onOpen={handleSessionOpen} />}
+          {view === 'analysis' && <AnalysisView analysisData={analysisData} analysisLoading={analysisLoading} prompt={prompt} profile={profile} videoSrc={videoSrc} />}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
 </body>
 </html>
